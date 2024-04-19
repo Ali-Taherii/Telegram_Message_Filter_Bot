@@ -13,6 +13,7 @@ type TeleBot struct {
 	WaitingForWord bool // New state variable to track if bot is waiting for filter word
 }
 
+// Initialize the bot
 func NewBot(token string) (*TeleBot, error) {
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
@@ -21,6 +22,7 @@ func NewBot(token string) (*TeleBot, error) {
 	return &TeleBot{API: botAPI}, nil
 }
 
+// Bot runs and gets messages from the user
 func (b *TeleBot) StartListening() {
 	b.API.Debug = true
 	log.Printf("Authorized on account %s", b.API.Self.UserName)
@@ -32,18 +34,23 @@ func (b *TeleBot) StartListening() {
 
 	for update := range updates {
 		if update.Message != nil {
-			if update.Message.IsCommand() && update.Message.Command() == "start" {
-				b.Start(update)
-			} else if update.Message.IsCommand() && update.Message.Command() == "filter" {
-				b.Filter(update)
-				b.WaitingForWord = true // Set WaitingForWord to true when /filter command received
+			if update.Message.IsCommand() {
+				switch update.Message.Command() {
+				case "start":
+					b.Start(update)
+				case "filter":
+					b.WaitingForWord = true // Set WaitingForWord to true when /filter command received
+					b.Filter(update)
+				default:
+					b.ProcessMessage(update)
+				}
 			} else {
 				if b.WaitingForWord {
 					b.WordReceiver(update)
+				} else {
+					b.ProcessMessage(update)
 				}
-			} /*else {
-				b.ProcessMessage(update)
-			}*/
+			}
 		}
 	}
 }
@@ -62,8 +69,8 @@ func (b *TeleBot) Filter(update tgbotapi.Update) {
 	b.API.Send(msg)
 }
 
-func (b *TeleBot) WordReceiver(update tgbotapi.Update) (wordReceived bool) {
-	// Reset the forward watcher
+func (b *TeleBot) WordReceiver(update tgbotapi.Update) {
+	// Not waiting for filter word
 	b.WaitingForWord = false
 
 	// Split the sentence into words
@@ -74,7 +81,6 @@ func (b *TeleBot) WordReceiver(update tgbotapi.Update) (wordReceived bool) {
 		reply := "Please provide only one word. Try /filter again."
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 		b.API.Send(msg)
-		return false
 	}
 
 	// Store the word to process
@@ -82,53 +88,29 @@ func (b *TeleBot) WordReceiver(update tgbotapi.Update) (wordReceived bool) {
 	reply := "Word received. Please send a sentence containing the word in the next message."
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	b.API.Send(msg)
-
-	return true
 }
 
 func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
-	if b.StoredWord == "" {
-		// Split the sentence into words
-		words := strings.Fields(update.Message.Text)
+	// Split the sentence into words
+	words := strings.Fields(update.Message.Text)
 
-		// The user input is more than one word
-		if len(words) > 1 {
-			reply := "Please provide only one word. Try again."
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
-			b.API.Send(msg)
-			return
+	// Check if the stored word is present in the sentence as a whole word
+	found := false
+	for _, word := range words {
+		if strings.EqualFold(word, b.StoredWord) {
+			found = true
+			break
 		}
+	}
 
-		// Store the word to process
-		b.StoredWord = words[0]
-		reply := "Word received. Please send a sentence containing the word in the next message."
+	// Respond based on whether the word is found or not
+	if found {
+		reply := "The sentence contains the word!"
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 		b.API.Send(msg)
 	} else {
-		// Split the sentence into words
-		words := strings.Fields(update.Message.Text)
-
-		// Check if the stored word is present in the sentence as a whole word
-		found := false
-		for _, word := range words {
-			if strings.EqualFold(word, b.StoredWord) {
-				found = true
-				break
-			}
-		}
-
-		// Respond based on whether the word is found or not
-		if found {
-			reply := "The sentence contains the word!"
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
-			b.API.Send(msg)
-		} else {
-			reply := "The sentence doesn't contain the word. Please try again."
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
-			b.API.Send(msg)
-		}
-
-		// Clear the stored word
-		b.StoredWord = ""
+		reply := "The sentence doesn't contain the word. Please try again."
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		b.API.Send(msg)
 	}
 }

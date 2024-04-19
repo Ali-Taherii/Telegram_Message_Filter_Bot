@@ -13,6 +13,6 @@ func main() {
 		log.Panic(err)
 	}
 
-	// Bot waits for a message
+	// Bot runs
 	bot.StartListening()
 }
