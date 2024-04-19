@@ -25,7 +25,7 @@ func main() {
 	defer db.Close()
 
 	// Initialize the bot
-	bot, err := structs.NewBot("7031750953:AAGgNTyWcTJbGUVkj6VoYDLfjQ2F3FFmXIo", db)
+	bot, err := structs.NewBot("7151732538:AAFMkSrVq3lykZOo6IGpgd-ngslqPZhmVhg", db)
 	if err != nil {
 		log.Panic(err)
 	}
