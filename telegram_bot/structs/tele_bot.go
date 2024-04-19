@@ -81,16 +81,26 @@ func (b *TeleBot) WordReceiver(update tgbotapi.Update) {
 		reply := "Please provide only one word. Try /filter again."
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 		b.API.Send(msg)
+		return
 	}
 
 	// Store the word to process
 	b.StoredWord = words[0]
-	reply := "Word received. Please send a sentence containing the word in the next message."
+	reply := "Word received. Please send a sentence in the next messages."
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+	msg.ReplyToMessageID = update.Message.MessageID
 	b.API.Send(msg)
 }
 
 func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
+
+	// No filter word yet entered
+	if b.StoredWord == "" {
+		reply := "No filter word found. Use /filter to enter one"
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		b.API.Send(msg)
+		return
+	}
 	// Split the sentence into words
 	words := strings.Fields(update.Message.Text)
 
@@ -107,10 +117,12 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 	if found {
 		reply := "The sentence contains the word!"
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		msg.ReplyToMessageID = update.Message.MessageID
 		b.API.Send(msg)
 	} else {
 		reply := "The sentence doesn't contain the word. Please try again."
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		msg.ReplyToMessageID = update.Message.MessageID
 		b.API.Send(msg)
 	}
 }
