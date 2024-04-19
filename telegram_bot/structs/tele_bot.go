@@ -43,6 +43,9 @@ func (b *TeleBot) StartListening() {
 				case "filter":
 					b.WaitingForWord = true // Set WaitingForWord to true when /filter command received
 					b.Filter(update)
+				case "stop":
+					b.Stop(update)
+					return // Stop processing updates
 				default:
 					b.ProcessMessage(update)
 				}
@@ -92,6 +95,21 @@ func (b *TeleBot) WordReceiver(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	msg.ReplyToMessageID = update.Message.MessageID
 	b.API.Send(msg)
+}
+
+// Stop closes the database connection
+func (b *TeleBot) Stop(update tgbotapi.Update) {
+	reply := "Stopping the bot. Closing database connection."
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+	b.API.Send(msg)
+	b.CloseDB()
+}
+
+// CloseDB closes the database connection
+func (b *TeleBot) CloseDB() {
+	if b.DB != nil {
+		b.DB.Close()
+	}
 }
 
 func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
