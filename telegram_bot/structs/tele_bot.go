@@ -46,6 +46,8 @@ func (b *TeleBot) StartListening() {
 				case "stop":
 					b.Stop(update)
 					return // Stop processing updates
+				case "help":
+					b.Help(update)
 				default:
 					b.ProcessMessage(update)
 				}
@@ -161,4 +163,15 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 		msg.ReplyToMessageID = update.Message.MessageID
 		b.API.Send(msg)
 	}
+}
+
+// Help command
+func (b *TeleBot) Help(update tgbotapi.Update) {
+	reply := "Available commands:\n" +
+		"/start - Start the bot\n" +
+		"/filter - Define a filter word\n" +
+		"/stop - Stop the bot\n" +
+		"/help - Display this help message"
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+	b.API.Send(msg)
 }
