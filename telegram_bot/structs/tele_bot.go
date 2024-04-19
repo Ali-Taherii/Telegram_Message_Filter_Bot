@@ -3,6 +3,7 @@ package structs
 import (
 	"log"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -11,15 +12,16 @@ type TeleBot struct {
 	API            *tgbotapi.BotAPI
 	StoredWord     string
 	WaitingForWord bool // New state variable to track if bot is waiting for filter word
+	DB             *DB  // Database connection
 }
 
 // Initialize the bot
-func NewBot(token string) (*TeleBot, error) {
+func NewBot(token string, db *DB) (*TeleBot, error) {
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
-	return &TeleBot{API: botAPI}, nil
+	return &TeleBot{API: botAPI, DB: db}, nil
 }
 
 // Bot runs and gets messages from the user
@@ -101,6 +103,7 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 		b.API.Send(msg)
 		return
 	}
+
 	// Split the sentence into words
 	words := strings.Fields(update.Message.Text)
 
@@ -110,6 +113,21 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 		if strings.EqualFold(word, b.StoredWord) {
 			found = true
 			break
+		}
+	}
+
+	// Store the message in the appropriate table based on whether the word is found
+	if found {
+		// Message contains the filter word, store it in messages_with_filter table
+		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.StoredWord, "messages_with_word")
+		if err != nil {
+			log.Println("Error storing message with filter word:", err)
+		}
+	} else {
+		// Message does not contain the filter word, store it in messages_without_filter table
+		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.StoredWord, "messages_without_word")
+		if err != nil {
+			log.Println("Error storing message without filter word:", err)
 		}
 	}
 
