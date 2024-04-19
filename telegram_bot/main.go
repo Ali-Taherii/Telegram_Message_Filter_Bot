@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"telegram_bot/structs"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -24,8 +26,17 @@ func main() {
 	}
 	defer db.Close()
 
+	// Prompt the user to enter the bot token
+	fmt.Println("Enter your bot token:")
+	reader := bufio.NewReader(os.Stdin)
+	botToken, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal("Error reading bot token:", err)
+	}
+	botToken = strings.TrimSpace(botToken)
+
 	// Initialize the bot
-	bot, err := structs.NewBot("7151732538:AAFMkSrVq3lykZOo6IGpgd-ngslqPZhmVhg", db)
+	bot, err := structs.NewBot(botToken, db)
 	if err != nil {
 		log.Panic(err)
 	}
