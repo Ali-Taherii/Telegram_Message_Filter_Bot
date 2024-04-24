@@ -22,10 +22,6 @@ WORKDIR /app
 # Copy the built Go binary from the builder stage
 COPY --from=builder /go/src/app/tele_bot .
 
-# Set environment variables for PostgreSQL password and bot token
-ENV POSTGRES_PASSWORD Killerboy008
-ENV BOT_TOKEN 7151732538:AAFMkSrVq3lykZOo6IGpgd-ngslqPZhmVhg
-
 # Expose any necessary ports
 # EXPOSE 8080
 

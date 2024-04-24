@@ -5,7 +5,7 @@ services:
     image: postgres:latest
     restart: always
     environment:
-      POSTGRES_PASSWORD: "Killerboy008"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: Telegram_Filter_Bot
 
   app:
@@ -14,6 +14,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      BOT_TOKEN: "7151732538:AAFMkSrVq3lykZOo6IGpgd-ngslqPZhmVhg"
+      BOT_TOKEN: ${BOT_TOKEN}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - db
