@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "Killerboy008"
+      POSTGRES_DB: Telegram_Filter_Bot
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      BOT_TOKEN: "7151732538:AAFMkSrVq3lykZOo6IGpgd-ngslqPZhmVhg"
+    depends_on:
+      - db
