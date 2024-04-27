@@ -15,7 +15,7 @@ func main() {
 	}
 
 	// Open database connection with password
-	db, err := structs.NewDB(fmt.Sprintf("user=postgres password=%s dbname=Telegram_Filter_Bot sslmode=disable host=db", password))
+	db, err := structs.NewDB(fmt.Sprintf("postgresql://postgres:%s@192.168.1.7/Telegram_Filter_Bot?sslmode=disable", password))
 	if err != nil {
 		log.Fatal("Error connecting to database:", err)
 	}
