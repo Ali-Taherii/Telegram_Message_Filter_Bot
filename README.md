@@ -30,7 +30,12 @@ This README file outlines the steps taken to develop a Telegram bot with basic f
 
 To use the Telegram bot:
 
-1. Obtain a bot token from the BotFather on Telegram.
-2. Provide the bot token and the database password when prompted.
-3. Run the bot application, either locally or within a Docker container.
-4. Interact with the bot using various commands as described in the bot's documentation.
+1. **Obtain a Bot Token**: Obtain a bot token from the BotFather on Telegram. Replace `YOUR_BOT_TOKEN` in the source code with your own bot token.
+
+2. **Provide SQL Connection String**: Provide the SQL connection string in the format specified in the source code. Replace `YOUR_SQL_CONNECTION_STRING` with your own SQL connection string.
+
+3. **Run the Bot Application**: Run the bot application, either locally or within a Docker container.
+
+4. **Interact with the Bot**: Interact with the bot using various commands as described in the bot's documentation.
+
+**Important**: Ensure that you use your own bot token and SQL connection string for security and customization purposes.
