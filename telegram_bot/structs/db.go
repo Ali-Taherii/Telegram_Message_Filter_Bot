@@ -36,3 +36,13 @@ func (db *DB) StoreMessage(senderID int64, messageText string, sentDate time.Tim
 	}
 	return err
 }
+
+// QueryRows executes a SQL query and returns the result rows
+func (db *DB) QueryRows(query string, args ...interface{}) (*sql.Rows, error) {
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		log.Printf("Error executing query: %v\n", err)
+		return nil, err
+	}
+	return rows, nil
+}

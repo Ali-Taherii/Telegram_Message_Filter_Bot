@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -48,6 +49,8 @@ func (b *TeleBot) StartListening() {
 					return // Stop processing updates
 				case "help":
 					b.Help(update)
+				case "show":
+					b.Show(update)
 				default:
 					b.ProcessMessage(update)
 				}
@@ -58,6 +61,9 @@ func (b *TeleBot) StartListening() {
 					b.ProcessMessage(update)
 				}
 			}
+		} else if update.CallbackQuery != nil {
+			// Handle callback query
+			b.HandleCallbackQuery(update)
 		}
 	}
 }
@@ -174,4 +180,74 @@ func (b *TeleBot) Help(update tgbotapi.Update) {
 		"/help - Display this help message"
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	b.API.Send(msg)
+}
+
+// Show command
+func (b *TeleBot) Show(update tgbotapi.Update) {
+	// Create an inline keyboard markup
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		// Create a row of buttons
+		tgbotapi.NewInlineKeyboardRow(
+			// Create the first button for showing messages with a filter word
+			tgbotapi.NewInlineKeyboardButtonData("Show messages with filter word", "show_with_filter"),
+		),
+		// Create another row of buttons
+		tgbotapi.NewInlineKeyboardRow(
+			// Create the second button for showing messages without a filter word
+			tgbotapi.NewInlineKeyboardButtonData("Show messages without filter word", "show_without_filter"),
+		),
+	)
+
+	// Create a message with the inline keyboard markup
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Choose an option:")
+	msg.ReplyMarkup = keyboard
+
+	// Send the message with the menu buttons
+	_, err := b.API.Send(msg)
+	if err != nil {
+		log.Println("Error sending message:", err)
+	}
+}
+
+// HandleCallbackQuery handles callback queries received when a user clicks on the inline keyboard buttons
+func (b *TeleBot) HandleCallbackQuery(update tgbotapi.Update) {
+	// Extract the callback data from the update
+	callbackData := update.CallbackQuery.Data
+
+	// Handle the callback data accordingly
+	switch callbackData {
+	case "show_with_filter":
+		// Handle action for "Show messages with a filter word"
+		// (if needed)
+	case "show_without_filter":
+		// Execute the SQL query to retrieve messages without a filter word
+		query := "SELECT sender_id, message_text, sent_date FROM messages_without_word"
+		rows, err := b.DB.QueryRows(query)
+		if err != nil {
+			log.Println("Error executing query:", err)
+			return
+		}
+		defer rows.Close()
+
+		// Iterate over the rows and build the message
+		var message string
+		for rows.Next() {
+			var senderID int64
+			var messageText string
+			var sentDate time.Time
+			if err := rows.Scan(&senderID, &messageText, &sentDate); err != nil {
+				log.Println("Error scanning row:", err)
+				continue
+			}
+			// Format each row into a readable message
+			message += fmt.Sprintf("Sender ID: %d\nMessage: %s\nSent Date: %s\n\n", senderID, messageText, sentDate.String())
+		}
+
+		// Send the message with the retrieved data
+		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, message)
+		_, err = b.API.Send(msg)
+		if err != nil {
+			log.Println("Error sending message:", err)
+		}
+	}
 }
