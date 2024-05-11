@@ -8,7 +8,7 @@ This README file outlines the steps taken to develop a Telegram bot with basic f
 
 2. **Learning Go (Golang)**: Engaged in Go tutorials to understand the basics of the language and its features. Utilized various online resources and tutorials to grasp the fundamentals.
 
-3. **Learning PostgreSQL**: Followed tutorials and documentation to learn about PostgreSQL, an open-source relational database management system. Understood how to interact with PostgreSQL using SQL queries and command line tools.
+3. **Learning PostgreSQL**: Followed tutorials and documentation to learn about PostgreSQL, an open-source relational database management system. Understood how to interact with PostgreSQL using SQL queries and command-line tools.
 
 4. **Structuring the Bot**: Decided to take an object-oriented programming (OOP) approach to keep the code organized and maintainable. Created separate structs for the Telegram bot and the PostgreSQL database.
 
@@ -20,11 +20,13 @@ This README file outlines the steps taken to develop a Telegram bot with basic f
 
 8. **Dependency Management**: Removed unnecessary dependencies from the project to optimize performance and reduce complexity.
 
-9. **Adding Bot Commands**: Implemented various bot commands such as `/help` to provide assistance, and `/stop` to gracefully close the database connection and stop the bot.
+9. **Adding Bot Commands**: Implemented various bot commands such as `/help` to provide assistance and `/stop` to gracefully close the database connection and stop the bot.
 
 10. **Bot Token Management**: Integrated functionality to handle bot token revocation and regeneration by the user.
 
 11. **Enhancements**: Continued to enhance the bot's functionality based on requirements and user feedback. Added features like `/filter` command to retrieve the filtering word.
+
+12. **Running Database on Server**: Configured the PostgreSQL database to accept connections remotely by running it on a server. Updated the bot's database connection settings to connect to the server.
 
 ## Usage
 
@@ -36,6 +38,10 @@ To use the Telegram bot:
 
 3. **Run the Bot Application**: Run the bot application, either locally or within a Docker container.
 
-4. **Interact with the Bot**: Interact with the bot using various commands as described in the bot's documentation.
+4. **Interact with the Bot**:
+   - `/start`: Start the bot.
+   - `/filter`: Add a filter word to filter the upcoming messages (one word only).
+   - `/help`: Show help.
+   - `/stop`: Stop the bot and store everything to the database.
 
 **Important**: Ensure that you use your own bot token and SQL connection string for security and customization purposes.
