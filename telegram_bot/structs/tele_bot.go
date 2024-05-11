@@ -11,8 +11,10 @@ import (
 
 type TeleBot struct {
 	API            *tgbotapi.BotAPI
-	StoredWord     string
+	FilterWord     string
+	SearchWord     string
 	WaitingForWord bool // New state variable to track if bot is waiting for filter word
+	IsSearching    bool // New state variable to track if the bot is searching messages
 	DB             *DB  // Database connection
 }
 
@@ -57,7 +59,7 @@ func (b *TeleBot) StartListening() {
 			} else {
 				if b.WaitingForWord {
 					b.WordReceiver(update)
-				} else {
+				} else if !b.WaitingForWord && !b.IsSearching {
 					b.ProcessMessage(update)
 				}
 			}
@@ -97,17 +99,26 @@ func (b *TeleBot) WordReceiver(update tgbotapi.Update) {
 		return
 	}
 
-	// Store the word to process
-	b.StoredWord = words[0]
-	reply := "Word received. Please send a sentence in the next messages."
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
-	msg.ReplyToMessageID = update.Message.MessageID
-	b.API.Send(msg)
+	if !b.IsSearching {
+		b.FilterWord = words[0] // Store filter word
+		reply := "Word received.\nPlease send a sentence in the next messages."
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		msg.ReplyToMessageID = update.Message.MessageID
+		b.API.Send(msg)
+	} else {
+		b.SearchWord = words[0] // Store search word
+		reply := "Word received.\nSearching for the messages with this filter word."
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
+		msg.ReplyToMessageID = update.Message.MessageID
+		b.API.Send(msg)
+		b.SearchMessage(update)
+	}
+
 }
 
 // Stop closes the database connection
 func (b *TeleBot) Stop(update tgbotapi.Update) {
-	reply := "Stopping the bot. Closing database connection."
+	reply := "Stopping the bot.\nClosing database connection."
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	b.API.Send(msg)
 	b.CloseDB()
@@ -123,7 +134,7 @@ func (b *TeleBot) CloseDB() {
 func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 
 	// No filter word yet entered
-	if b.StoredWord == "" {
+	if b.FilterWord == "" {
 		reply := "No filter word found. Use /filter to enter one"
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 		b.API.Send(msg)
@@ -136,7 +147,7 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 	// Check if the stored word is present in the sentence as a whole word
 	found := false
 	for _, word := range words {
-		if strings.EqualFold(word, b.StoredWord) {
+		if strings.EqualFold(word, b.FilterWord) {
 			found = true
 			break
 		}
@@ -145,13 +156,13 @@ func (b *TeleBot) ProcessMessage(update tgbotapi.Update) {
 	// Store the message in the appropriate table based on whether the word is found
 	if found {
 		// Message contains the filter word, store it in messages_with_filter table
-		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.StoredWord, "messages_with_word")
+		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.FilterWord, "messages_with_word")
 		if err != nil {
 			log.Println("Error storing message with filter word:", err)
 		}
 	} else {
 		// Message does not contain the filter word, store it in messages_without_filter table
-		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.StoredWord, "messages_without_word")
+		err := b.DB.StoreMessage(update.Message.From.ID, update.Message.Text, time.Now(), b.FilterWord, "messages_without_word")
 		if err != nil {
 			log.Println("Error storing message without filter word:", err)
 		}
@@ -177,6 +188,7 @@ func (b *TeleBot) Help(update tgbotapi.Update) {
 		"/start - Start the bot\n" +
 		"/filter - Define a filter word\n" +
 		"/stop - Stop the bot\n" +
+		"/show - Show the stored messages" +
 		"/help - Display this help message"
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	b.API.Send(msg)
@@ -209,6 +221,46 @@ func (b *TeleBot) Show(update tgbotapi.Update) {
 	}
 }
 
+// Retrieve messages with a filter word
+func (b *TeleBot) SearchMessage(update tgbotapi.Update) {
+	b.IsSearching = false
+
+	// Construct the query string by concatenating the SearchWord variable
+	query := fmt.Sprintf("SELECT sender_id, message_text, sent_date FROM messages_with_word WHERE filter_word = '%s'", b.SearchWord)
+	rows, err := b.DB.QueryRows(query)
+	if err != nil {
+		log.Println("Error executing query:", err)
+		return
+	}
+	defer rows.Close()
+
+	// Iterate over the rows and build the message
+	var message string
+	for rows.Next() {
+		var senderID int64
+		var messageText string
+		var sentDate time.Time
+		if err := rows.Scan(&senderID, &messageText, &sentDate); err != nil {
+			log.Println("Error scanning row:", err)
+			continue
+		}
+		// Format each row into a readable message
+		message += fmt.Sprintf("Sender ID: %d\nMessage: %s\nSent Date: %s\n\n", senderID, messageText, sentDate.String())
+	}
+
+	// Check if no messages were found
+	if message == "" {
+		message = "No messages found."
+	}
+
+	// Send the message with the retrieved data or the "No messages found" message
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, message)
+	_, err = b.API.Send(msg)
+	if err != nil {
+		log.Println("Error sending message:", err)
+	}
+}
+
 // HandleCallbackQuery handles callback queries received when a user clicks on the inline keyboard buttons
 func (b *TeleBot) HandleCallbackQuery(update tgbotapi.Update) {
 	// Extract the callback data from the update
@@ -217,8 +269,14 @@ func (b *TeleBot) HandleCallbackQuery(update tgbotapi.Update) {
 	// Handle the callback data accordingly
 	switch callbackData {
 	case "show_with_filter":
-		// Handle action for "Show messages with a filter word"
-		// (if needed)
+		// Prompt the user to enter the filter word
+		reply := "Please enter the filter word:"
+		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, reply)
+		b.API.Send(msg)
+
+		b.WaitingForWord = true // Set the bot's state to wait for the filter word
+		b.IsSearching = true    // Additional state variable to indicate filtering messages with a word
+
 	case "show_without_filter":
 		// Execute the SQL query to retrieve messages without a filter word
 		query := "SELECT sender_id, message_text, sent_date FROM messages_without_word"
@@ -241,6 +299,11 @@ func (b *TeleBot) HandleCallbackQuery(update tgbotapi.Update) {
 			}
 			// Format each row into a readable message
 			message += fmt.Sprintf("Sender ID: %d\nMessage: %s\nSent Date: %s\n\n", senderID, messageText, sentDate.String())
+		}
+
+		// Check if no messages were found
+		if message == "" {
+			message = "No messages found."
 		}
 
 		// Send the message with the retrieved data
