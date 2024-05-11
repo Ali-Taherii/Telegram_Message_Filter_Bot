@@ -41,6 +41,7 @@ To use the Telegram bot:
 4. **Interact with the Bot**:
    - `/start`: Start the bot.
    - `/filter`: Add a filter word to filter the upcoming messages (one word only).
+   - `/show`: Search for messages.
    - `/help`: Show help.
    - `/stop`: Stop the bot and store everything to the database.
 
