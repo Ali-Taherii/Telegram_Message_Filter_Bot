@@ -71,7 +71,7 @@ func (b *TeleBot) StartListening() {
 }
 
 func (b *TeleBot) Start(update tgbotapi.Update) {
-	reply := "Welcome! This bot will first ask you for a word, and then for a sentence. It will then check if the sentence contains the word or not.\nUse /filter to define the filer word"
+	reply := "Welcome! This bot will first ask you for a word, and then for a sentence. It will then check if the sentence contains the word or not.\nUse /filter to define the filter word\nUse /show to search for messages"
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
 	b.API.Send(msg)
 }
